@@ -16,6 +16,7 @@ export default function Feed() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [interests, setInterests] = useState('');
+  const [currentUser, setCurrentUser] = useState(null);
   const observer = useRef();
   const lastProfileElementRef = useCallback(node => {
     if (loading) return;
@@ -27,6 +28,22 @@ export default function Feed() {
     });
     if (node) observer.current.observe(node);
   }, [loading, hasMore]);
+
+  useEffect(() => {
+    fetchCurrentUser();
+  }, []);
+
+  const fetchCurrentUser = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get('http://localhost:3000/api/profile/me', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setCurrentUser(response.data);
+    } catch (error) {
+      console.error('Error fetching current user:', error);
+    }
+  };
 
   const fetchProfiles = async (pageNum = 1, interestsFilter = '', shouldAppend = false) => {
     try {
@@ -128,19 +145,21 @@ export default function Feed() {
     <div className="max-w-3xl mx-auto px-4 py-6">
       {/* Profile Action Card */}
       <Card className="mb-6">
-        <div className="relative flex items-start pt-6">
-          <Space>
-            <Avatar size="large" icon={<UserOutlined />} src={user?.photoUrl} />
-            <div>
-              <h3 className="text-lg font-medium">Welcome, {user?.name}</h3>
-              <p className="text-gray-500 text-sm">Update your profile to help others discover you</p>
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <Avatar 
+              size={64}
+              src={currentUser?.photoUrl} 
+              icon={!currentUser?.photoUrl && <UserOutlined />} 
+            />
+            <div className="flex flex-col">
+              <h3 className="text-lg font-medium mb-1">Welcome, {currentUser?.name || 'User'}</h3>
+              <p className="text-gray-500 text-sm m-0">Update your profile to help others discover you</p>
             </div>
-          </Space>
+          </div>
           <Button
             type="primary"
             onClick={() => navigate('/profile')}
-            size="small"
-            className="absolute -top-1 right-0"
           >
             View Profile
           </Button>
