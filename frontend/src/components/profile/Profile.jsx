@@ -41,6 +41,7 @@ export default function Profile() {
   };
 
   const handleSubmit = async (values) => {
+    if (!isEditing) return;
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
@@ -74,11 +75,8 @@ export default function Profile() {
     }
   };
 
-  const startEditing = () => {
-    form.setFieldsValue({
-      ...profile,
-      interests: profile.interests
-    });
+  const startEditing = (e) => {
+    e.preventDefault();
     setIsEditing(true);
   };
 
@@ -145,10 +143,7 @@ export default function Profile() {
           form={form}
           layout="vertical"
           onFinish={handleSubmit}
-          initialValues={{
-            ...profile,
-            interests: Array.isArray(profile.interests) ? profile.interests.join(', ') : profile.interests
-          }}
+          initialValues={profile}
         >
           <Form.Item
             name="photoUrl"
@@ -156,7 +151,7 @@ export default function Profile() {
           >
             <Input 
               placeholder="Enter photo URL" 
-              readOnly={!isEditing}
+              disabled={!isEditing}
             />
           </Form.Item>
 
@@ -167,7 +162,7 @@ export default function Profile() {
           >
             <Input 
               placeholder="Your name" 
-              readOnly={!isEditing}
+              disabled={!isEditing}
             />
           </Form.Item>
 
@@ -177,7 +172,7 @@ export default function Profile() {
           >
             <Input 
               placeholder="Your professional headline" 
-              readOnly={!isEditing}
+              disabled={!isEditing}
             />
           </Form.Item>
 
@@ -188,7 +183,7 @@ export default function Profile() {
             <TextArea
               placeholder="Tell us about yourself"
               rows={4}
-              readOnly={!isEditing}
+              disabled={!isEditing}
             />
           </Form.Item>
 
@@ -199,7 +194,7 @@ export default function Profile() {
           >
             <Input 
               placeholder="e.g. coding, reading, travel" 
-              readOnly={!isEditing}
+              disabled={!isEditing}
             />
           </Form.Item>
 
