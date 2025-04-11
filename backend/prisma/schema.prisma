@@ -1,0 +1,28 @@
+// This is your Prisma schema file
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  bio       String?
+  headline  String?
+  photoUrl  String?
+  interests String[] @default([])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations for bonus features (if implemented)
+  followers User[]  @relation("UserFollows")
+  following User[]  @relation("UserFollows")
+  likes     User[]  @relation("UserLikes")
+  likedBy   User[]  @relation("UserLikes")
+} 
