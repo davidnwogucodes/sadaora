@@ -191,4 +191,80 @@ router.get('/:id/follow', authenticateToken, async (req, res) => {
   }
 });
 
+// Like a user
+router.post('/:id/like', authenticateToken, async (req, res) => {
+  try {
+    const userToLike = await prisma.user.findUnique({
+      where: { id: req.params.id }
+    });
+
+    if (!userToLike) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (req.user.id === req.params.id) {
+      return res.status(400).json({ error: 'Cannot like yourself' });
+    }
+
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: {
+        likes: {
+          connect: { id: req.params.id }
+        }
+      }
+    });
+
+    res.json({ message: 'Successfully liked user' });
+  } catch (error) {
+    res.status(500).json({ error: 'Error liking user' });
+  }
+});
+
+// Unlike a user
+router.delete('/:id/like', authenticateToken, async (req, res) => {
+  try {
+    const userToUnlike = await prisma.user.findUnique({
+      where: { id: req.params.id }
+    });
+
+    if (!userToUnlike) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: {
+        likes: {
+          disconnect: { id: req.params.id }
+        }
+      }
+    });
+
+    res.json({ message: 'Successfully unliked user' });
+  } catch (error) {
+    res.status(500).json({ error: 'Error unliking user' });
+  }
+});
+
+// Get like status
+router.get('/:id/like', authenticateToken, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      include: {
+        likes: {
+          where: { id: req.params.id },
+          select: { id: true }
+        }
+      }
+    });
+
+    const isLiked = user.likes.length > 0;
+    res.json({ isLiked });
+  } catch (error) {
+    res.status(500).json({ error: 'Error checking like status' });
+  }
+});
+
 export default router; 

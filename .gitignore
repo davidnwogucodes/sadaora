@@ -1,5 +1,5 @@
 # Dependencies
-node_modules/
+node_modules
 .pnp
 .pnp.js
 
@@ -9,22 +9,43 @@ node_modules/
 .env.development.local
 .env.test.local
 .env.production.local
+.env.test
 
 # Debug logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+.pnpm-debug.log*
 
 # Build outputs
-dist/
-build/
+dist
+build
+.cache
+.output
 
 # IDE and editor files
-.idea/
-.vscode/
+.idea
+.vscode
 *.swp
 *.swo
 .DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# Testing
+coverage
+.nyc_output
+
+# Misc
+.DS_Store
+*.pem
+.vercel
+.next
+.turbo
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
 
 # Backend specific
 backend/node_modules/

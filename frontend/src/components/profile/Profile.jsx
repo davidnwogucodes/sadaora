@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { message } from 'antd';
 import axios from 'axios';
 
 export default function Profile() {
@@ -14,7 +15,6 @@ export default function Profile() {
     interests: []
   });
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
 
   useEffect(() => {
     fetchProfile();
@@ -26,8 +26,15 @@ export default function Profile() {
       const response = await axios.get('http://localhost:3000/api/profile/me', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setProfile(response.data);
-      setFormData(response.data);
+      
+      // Ensure photoUrl is null if empty
+      const profileData = {
+        ...response.data,
+        photoUrl: response.data.photoUrl || null
+      };
+      
+      setProfile(profileData);
+      setFormData(profileData);
     } catch (error) {
       setError('Error fetching profile');
     }
@@ -42,12 +49,11 @@ export default function Profile() {
   };
 
   const handleInterestsChange = (e) => {
-    // Split by comma, trim whitespace, and filter out empty strings
+    // Split by comma, trim whitespace, filter out empty strings
     const interests = e.target.value
-      ? e.target.value.split(',')
-          .map(tag => tag.trim())
-          .filter(tag => tag.length > 0)
-      : [];
+      .split(',')
+      .map(interest => interest.trim())
+      .filter(interest => interest.length > 0);
     setFormData(prev => ({
       ...prev,
       interests
@@ -56,10 +62,7 @@ export default function Profile() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
-
-    // Validate required fields
+    
     if (!formData.name?.trim()) {
       setError('Name is required');
       return;
@@ -68,44 +71,50 @@ export default function Profile() {
     try {
       const token = localStorage.getItem('token');
       
-      // Only include fields that have values
+      // Handle photoUrl explicitly - if it's empty string or null, send null
       const dataToSend = {
-        name: formData.name.trim()
+        name: formData.name.trim(),
+        bio: formData.bio || '',
+        headline: formData.headline || '',
+        photoUrl: formData.photoUrl || null,  // This is the key change
+        interests: formData.interests || []
       };
 
-      // Only add optional fields if they have values
-      if (formData.bio?.trim()) dataToSend.bio = formData.bio.trim();
-      if (formData.headline?.trim()) dataToSend.headline = formData.headline.trim();
-      if (formData.photoUrl?.trim()) dataToSend.photoUrl = formData.photoUrl.trim();
-      if (Array.isArray(formData.interests) && formData.interests.length > 0) {
-        dataToSend.interests = formData.interests.filter(i => i.trim().length > 0);
-      }
+      console.log('Sending data:', dataToSend);  // Debug log
 
-      console.log('Submitting profile update:', dataToSend); // Debug log
-      
       const response = await axios.put(
         'http://localhost:3000/api/profile/me',
         dataToSend,
         {
           headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+            'Authorization': `Bearer ${token}`
           }
         }
       );
-      
-      setProfile(response.data);
+
+      // Update state with the response, ensuring photoUrl is null if empty
+      const updatedData = {
+        ...response.data,
+        photoUrl: response.data.photoUrl || null
+      };
+
+      setProfile(updatedData);
+      setFormData(updatedData);
       setIsEditing(false);
-      setSuccess('Profile updated successfully!');
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (error) {
-      console.error('Profile update error:', error.response?.data || error); // More detailed error logging
-      const errorMessage = error.response?.data?.error || 
-                          error.response?.data?.errors?.[0]?.msg ||
-                          error.message || 
-                          'Error updating profile';
-      setError(errorMessage);
+      message.success('Profile updated successfully!');
+    } catch (err) {
+      console.error('Update error:', err.response?.data);
+      setError('Failed to update profile');
     }
+  };
+
+  // Add a specific handler for photo URL changes
+  const handlePhotoUrlChange = (e) => {
+    const value = e.target.value.trim();
+    setFormData(prev => ({
+      ...prev,
+      photoUrl: value || null  // Set to null if empty
+    }));
   };
 
   const handleDelete = async () => {
@@ -153,21 +162,6 @@ export default function Profile() {
           </div>
         )}
 
-        {success && (
-          <div className="mx-4 sm:mx-8 mt-4 p-3 sm:p-4 rounded-lg bg-green-50 border border-green-200">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-green-700">{success}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
         {isEditing ? (
           <form onSubmit={handleSubmit} className="p-4 sm:p-8 space-y-4 sm:space-y-6">
             {/* Profile Photo */}
@@ -181,15 +175,15 @@ export default function Profile() {
                   />
                 ) : (
                   <svg className="h-full w-full text-gray-300" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
+                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
                   </svg>
                 )}
               </div>
               <input
                 type="url"
                 name="photoUrl"
-                value={formData.photoUrl || ''}
-                onChange={handleInputChange}
+                value={formData.photoUrl ?? ''}
+                onChange={handlePhotoUrlChange}
                 className="w-full max-w-xs rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
                 placeholder="Enter photo URL"
               />
@@ -298,17 +292,21 @@ export default function Profile() {
           <div className="p-4 sm:p-8 space-y-6">
             {/* View Profile */}
             <div className="flex flex-col sm:flex-row items-center sm:items-start sm:space-x-5">
-              {profile.photoUrl && (
-                <div className="flex-shrink-0 mb-4 sm:mb-0">
-                  <div className="relative h-16 w-16 rounded-full overflow-hidden border-2 border-gray-200">
+              <div className="flex-shrink-0 mb-4 sm:mb-0">
+                <div className="relative h-16 w-16 rounded-full overflow-hidden border-2 border-gray-200">
+                  {profile.photoUrl ? (
                     <img
                       src={profile.photoUrl}
                       alt={profile.name}
                       className="h-full w-full object-cover"
                     />
-                  </div>
+                  ) : (
+                    <svg className="h-full w-full text-gray-300" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                    </svg>
+                  )}
                 </div>
-              )}
+              </div>
               <div className="text-center sm:text-left">
                 <h2 className="text-xl font-bold text-gray-900">{profile.name}</h2>
                 {profile.headline && (
